@@ -1,3 +1,21 @@
+// Function to unregister a participant (global scope for onclick handlers)
+async function unregister(activity, email) {
+  try {
+    const response = await fetch(
+      `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+      { method: "DELETE" }
+    );
+    if (response.ok) {
+      location.reload(); // Refresh the page to show updated list
+    } else {
+      alert("Failed to unregister. Please try again.");
+    }
+  } catch (error) {
+    console.error("Error unregistering:", error);
+    alert("Failed to unregister. Please try again.");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
@@ -19,21 +37,29 @@ document.addEventListener("DOMContentLoaded", () => {
         activityCard.className = "activity-card";
 
         const spotsLeft = details.max_participants - details.participants.length;
+      const participantsTitle = details.participants.length > 0 ? "Participants" : "No participants yet";
+      const participantsList = details.participants.length > 0
+        ? `<ul class="participants-list">${details.participants.map(p => `<li>${p} <button onclick="unregister('${name}', '${p}')">×</button></li>`).join("")}</ul>`
+        : "<p class=\"no-participants\">Be the first to sign up!</p>";
 
-        activityCard.innerHTML = `
+      activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <p class="participants-title"><strong>${participantsTitle}</strong></p>
+            ${participantsList}
+          </div>
         `;
 
-        activitiesList.appendChild(activityCard);
+      activitiesList.appendChild(activityCard);
 
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
+      // Add option to select dropdown
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      activitySelect.appendChild(option);
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
@@ -62,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh the activities list
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
